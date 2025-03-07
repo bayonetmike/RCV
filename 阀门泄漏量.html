@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+ 
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>阀门泄漏量计算</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-image: url('https://nwzimg.wezhan.cn/contents/sitefiles2034/10170887/images/55923035.jpg');  /* 替换为您的背景图片路径 */
+            background-size: cover;
+            background-position: center;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+ 
+        .container {
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            max-width: 500px;
+            width: 100%;
+        }
+ 
+        h1, h2 {
+            text-align: center;
+            color: #007BFF;
+        }
+ 
+        .form-group {
+            margin-bottom: 10px;
+        }
+ 
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+ 
+        input[type="number"], select {
+            width: 95%;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+ 
+        .btn {
+            width: 95%;
+            padding: 10px;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+ 
+        .btn:hover {
+            background-color: #0056b3;
+        }
+ 
+        .result {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+ 
+        .result h3 {
+            margin-top: 0;
+            color: #007BFF;
+        }
+    </style>
+</head>
+ 
+<body>
+    <div class="container">
+        <h1>阀门泄漏量计算</h1>
+        <h2>ANSI FCI70 - 2 - 2006</h2>
+        <form id="inputForm">
+            <div class="form-group">
+                <label for="dn">阀门公称通径 DN (mm):</label>
+                <input type="number" id="dn" required oninput="convertDNtoNPS()">
+            </div>
+            <div class="form-group">
+                <label for="nps">阀门尺寸 NPS (in):</label>
+                <input type="number" id="nps" oninput="convertNPStoDN()">
+            </div>
+            <div class="form-group">
+                <label for="d">阀座直径 d (mm):</label>
+                <input type="number" id="d" required oninput="convertDtoInch()">
+            </div>
+            <div class="form-group">
+                <label for="inch">阀口尺寸 (in):</label>
+                <input type="number" id="inch" oninput="convertInchtoD()">
+            </div>
+            <div class="form-group">
+                <label for="cv">额定流量系数 Cv:</label>
+                <input type="number" id="cv" required oninput="convertCVtoKV()">
+            </div>
+            <div class="form-group">
+                <label for="kv">额定流量系数 Kv:</label>
+                <input type="number" id="kv" oninput="convertKVtoCV()">
+            </div>
+            <div class="form-group">
+                <label for="deltaP">试验介质压力 ΔP (kPa):</label>
+                <input type="number" id="deltaP" value="350">
+            </div>
+            <div class="form-group">
+                <label for="medium">试验介质:</label>
+                <select id="medium">
+                    <option value="liquid">液体</option>
+                    <option value="gas">气体</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <input type="button" value="计算" onclick="calculate()" class="btn">
+            </div>
+        </form>
+        <div id="result" class="result"></div>
+    </div>
+ 
+    <script>
+        const dnToNpsMap = {
+            15: 0.5,
+            20: 0.75,
+            25: 1,
+            32: 1.25,
+            40: 1.5,
+            50: 2,
+            65: 2.5,
+            80: 3,
+            100: 4 
+        };
+ 
+        function convertDNtoNPS() {
+            const dn = parseFloat(document.getElementById('dn').value);   
+            const npsInput = document.getElementById('nps');   
+            if (dnToNpsMap[dn]) {
+                npsInput.value    = dnToNpsMap[dn];
+            } else if (dn > 100) {
+                npsInput.value    = dn / 25;
+            } else {
+                npsInput.value    = '';
+            }
+        }
+ 
+        function convertNPStoDN() {
+            const nps = parseFloat(document.getElementById('nps').value);   
+            const dnInput = document.getElementById('dn');   
+            if (Object.values(dnToNpsMap).includes(nps))    {
+                for (const [dn, npsValue] of Object.entries(dnToNpsMap))    {
+                    if (npsValue === nps) {
+                        dnInput.value    = dn;
+                        break;
+                    }
+                }
+            } else if (nps > 4) {
+                dnInput.value    = nps * 25;
+            } else {
+                dnInput.value    = '';
+            }
+        }
+ 
+        function convertDtoInch() {
+            const d = parseFloat(document.getElementById('d').value);   
+            const inchInput = document.getElementById('inch');   
+            if (!isNaN(d)) {
+                // 阀口尺寸取 4 位小数 
+                inchInput.value    = (d / 25.4).toFixed(4);
+            } else {
+                inchInput.value    = '';
+            }
+        }
+ 
+        function convertInchtoD() {
+            const inch = parseFloat(document.getElementById('inch').value);   
+            const dInput = document.getElementById('d');   
+            if (!isNaN(inch)) {
+                dInput.value    = inch * 25.4;
+            } else {
+                dInput.value    = '';
+            }
+        }
+ 
+        function convertCVtoKV() {
+            const cv = parseFloat(document.getElementById('cv').value);   
+            const kvInput = document.getElementById('kv');   
+            if (!isNaN(cv)) {
+                // Kv 取 2 位小数 
+                kvInput.value    = (cv / 1.167).toFixed(4);
+            } else {
+                kvInput.value    = '';
+            }
+        }
+ 
+        function convertKVtoCV() {
+            const kv = parseFloat(document.getElementById('kv').value);   
+            const cvInput = document.getElementById('cv');   
+            if (!isNaN(kv)) {
+                cvInput.value    = kv * 1.167;
+            } else {
+                cvInput.value    = '';
+            }
+        }
+ 
+        function calculate() {
+            // 获取输入值 
+            const dn = parseFloat(document.getElementById('dn').value);   
+            const d = parseFloat(document.getElementById('d').value);   
+            const cv = parseFloat(document.getElementById('cv').value);   
+            const deltaP = parseFloat(document.getElementById('deltaP').value);   
+            const medium = document.getElementById('medium').value;   
+ 
+            // 计算阀的额定容量 Q1 
+            let Q1;
+            if (medium === 'liquid') {
+                Q1 = 0.1 * cv * Math.sqrt(deltaP);   
+            } else {
+                Q1 = 0.19 * Math.sqrt(0.72)    * (deltaP + 100) * cv;
+            }
+ 
+            // 计算 x 值（用于 VI 级阀门泄漏量计算）
+            const dnValues = [25, 40, 50, 65, 80, 100, 150, 200, 250, 300, 350, 400];
+            const xValues = [0.15, 0.3, 0.45, 0.6, 0.9, 1.7, 4, 6.75, 11.1, 16, 21.6, 28.4];
+            let x;
+            if (dnValues.includes(dn))    {
+                x = xValues[dnValues.indexOf(dn)];
+            } else {
+                for (let i = 0; i < dnValues.length    - 1; i++) {
+                    if (dn > dnValues[i] && dn < dnValues[i + 1]) {
+                        x = xValues[i] + (xValues[i + 1] - xValues[i]) * (dn - dnValues[i]) / (dnValues[i + 1] - dnValues[i]);
+                        break;
+                    }
+                }
+            }
+ 
+            // Ⅳ级阀门泄漏量计算 
+            let a1, a2;
+            if (medium === 'liquid') {
+                a1 = Q1 * 100 * 0.8569 / 60;
+                a1 = `${a1.toFixed(2)}     ml/min`;
+            } else {
+                a2 = Q1 * 0.8569 / 600;
+                a2 = `${a2.toFixed(2)}    l/min`;
+            }
+ 
+            // Ⅴ级阀门泄漏量计算 
+            let b1, b2, b3, b4;
+            if (medium === 'liquid') {
+                b1 = deltaP * 1.8 * d / 600000;
+                b2 = b1 / 0.05;
+                b1 = `${b1.toFixed(2)}     ml/min`;
+                b2 = `${b2.toFixed(2)}     水滴数 个/min`;
+            } else {
+                b3 = 4.7 * d / 25.4;
+                b4 = Math.round(b3    / 0.15);
+                b3 = `${b3.toFixed(2)}     ml/min`;
+                b4 = `${b4} 气泡数 个/min`;
+            }
+ 
+            // Ⅵ级阀门泄漏量计算 
+            let c1, c2;
+            if (medium === 'gas') {
+                c1 = x * 3 * deltaP / 1000;
+                c2 = Math.round(c1    / 0.15);
+                c1 = `${c1.toFixed(2)}     ml/min`;
+                c2 = `${c2} 气泡数 个/min`;
+            }
+ 
+            // 显示结果 
+            let resultHtml = '<h3>计算结果</h3>';
+            if (medium === 'liquid') {
+                resultHtml += `<p>Ⅳ级阀门泄漏量: ${a1}</p>`;
+            } else {
+                resultHtml += `<p>Ⅳ级阀门泄漏量: ${a2}</p>`;
+            }
+            if (medium === 'liquid') {
+                resultHtml += `<p>Ⅴ级阀门泄漏量: ${b1}, ${b2}</p>`;
+            } else {
+                resultHtml += `<p>Ⅴ级阀门泄漏量: ${b3}, ${b4}</p>`;
+            }
+            if (medium === 'gas') {
+                resultHtml += `<p>Ⅵ级阀门泄漏量: ${c1}, ${c2}</p>`;
+            }
+            document.getElementById('result').innerHTML    = resultHtml;
+        }
+    </script>
+</body>
+ 
+</html>
